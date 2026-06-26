@@ -56,7 +56,7 @@ function requireAdmin(req, res, next) {
 }
 
 // 🔒 PROTECTED: Only authenticated admins can add places
-app.post("/add-place", requireAuth, requireAdmin, (req, res) => {
+app.post("/api/add-place", requireAuth, requireAdmin, (req, res) => {
   const { name, description, latitude, longitude, type } = req.body;
 
   // تحقق بسيط
@@ -81,7 +81,7 @@ app.post("/add-place", requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-app.get("/places", (req, res) => {
+app.get("/api/places", (req, res) => {
   const sql = "SELECT * FROM places";
 
   db.query(sql, (err, result) => {
@@ -94,7 +94,7 @@ app.get("/places", (req, res) => {
   });
 });
  
-app.post("/login", (req, res) => {
+app.post("/api/login", (req, res) => {
     console.log("LOGIN WORKS");
     console.log(req.body);
 
