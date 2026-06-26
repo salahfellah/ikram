@@ -1,7 +1,7 @@
 // js/user.js
 document.addEventListener('DOMContentLoaded', () => {
     const map = initMap('map');
-    fetch("http://localhost:3000/places")
+    fetch("/api/places")
   .then(res => res.json())
   .then(places => {
 

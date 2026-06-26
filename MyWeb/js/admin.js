@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🔹 Get the token from localStorage
         const token = localStorage.getItem("token");
 
-        fetch("http://localhost:3000/add-place", {
+        fetch("/api/add-place", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
