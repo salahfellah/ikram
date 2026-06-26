@@ -5,20 +5,17 @@ const path = require("path");
 const jwt = require("jsonwebtoken"); // 🔹 NEW: Import JWT
 const app = express();
 
-// 🔹 NEW: Secret key for signing tokens (Change this in production!)
-const JWT_SECRET = "your_super_secret_key_change_this_in_production"; 
+const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_key_change_this";
 
-// middlewares
 app.use(cors());
 app.use(express.json());
 
-// 🔹 الاتصال بقاعدة البيانات
 const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",      
-  password: "",      
-  database: "geoviz_db",
-  port: 3307
+  host: process.env.DB_HOST || "db",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "rootpassword",
+  database: process.env.DB_NAME || "geoviz_db",
+  port: process.env.DB_PORT || 3306
 });
 
 // 🔹 اختبار الاتصال

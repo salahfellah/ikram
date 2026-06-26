@@ -9,13 +9,18 @@ app.use(express.json());
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_super_secret_key_change_this";
 
-const db = mysql.createConnection({
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 5,
+  queueLimit: 0,
 });
+
+const promisePool = pool.promise();
 
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -39,39 +44,53 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-app.post("/api/add-place", requireAuth, requireAdmin, (req, res) => {
+app.post("/api/add-place", requireAuth, requireAdmin, async (req, res) => {
   const { name, description, latitude, longitude, type } = req.body;
   if (!name || !latitude || !longitude) {
     return res.status(400).json({ error: "Missing data" });
   }
-  const sql = "INSERT INTO places (name, description, latitude, longitude, type) VALUES (?, ?, ?, ?, ?)";
-  db.query(sql, [name, description, latitude, longitude, type], (err, result) => {
-    if (err) return res.status(500).json(err);
+  try {
+    const [result] = await promisePool.execute(
+      "INSERT INTO places (name, description, latitude, longitude, type) VALUES (?, ?, ?, ?, ?)",
+      [name, description, latitude, longitude, type]
+    );
     res.json({ message: "Place added successfully", id: result.insertId });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get("/api/places", (req, res) => {
-  db.query("SELECT * FROM places", (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json(result);
-  });
+app.get("/api/places", async (req, res) => {
+  try {
+    const [rows] = await promisePool.query("SELECT * FROM places");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
-  const sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-  db.query(sql, [username, password], (err, result) => {
-    if (err) return res.status(500).json(err);
-    if (result.length > 0) {
-      const user = result[0];
-      const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: "24h" });
+  try {
+    const [rows] = await promisePool.execute(
+      "SELECT * FROM users WHERE username = ? AND password = ?",
+      [username, password]
+    );
+    if (rows.length > 0) {
+      const user = rows[0];
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: "24h" }
+      );
       const { password: _, ...safeUser } = user;
       res.json({ success: true, user: safeUser, token });
     } else {
       res.status(401).json({ success: false, message: "Invalid credentials" });
     }
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = app;
